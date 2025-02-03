@@ -44,7 +44,61 @@ echo 'export EMAIL_RECEIVER="your_receiver_email"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-7. Set up a cron job to run your trading bot
+7. Set up email
+* **Note**: you'll need to set up an app password if you're using Gmail, your regular password won't work.
+* Install mailutils on Your EC2 Instance
+```
+sudo apt install ssmtp -y
+```
+* Edit config file
+```
+sudo nano /etc/ssmtp/ssmtp.conf
+```
+
+* Add this (replace with your Gmail credentials):
+```
+root=your_email@gmail.com
+mailhub=smtp.gmail.com:587
+AuthUser=your_email@gmail.com
+AuthPass=your_gmail_app_password
+UseTLS=YES
+UseSTARTTLS=YES
+```
+
+7a. If the above doesn't work, use postfix
+* Edit Postfix Configuration File
+```
+relayhost = [smtp.gmail.com]:587
+smtp_use_tls = yes
+smtp_sasl_auth_enable = yes
+smtp_sasl_security_options =
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_mechanism_filter = plain
+```
+
+* Create Authentication File for Gmail SMTP
+```
+sudo nano /etc/postfix/sasl_passwd
+```
+
+* Add this line (replace with your actual Gmail credentials):
+```
+[smtp.gmail.com]:587 your_email@gmail.com:your_app_password
+```
+
+* Secure the Password File
+```
+sudo chmod 600 /etc/postfix/sasl_passwd
+sudo postmap /etc/postfix/sasl_passwd
+```
+
+* Restart Postfix to Apply Changes
+```
+sudo systemctl restart postfix
+```
+
+
+8. Set up a cron job to run your trading bot
 ```
 crontab -e
 ```
@@ -53,3 +107,4 @@ Add the following line (runs the trading bot script every weekday at 10am PST):
 ```
 10 * * * 1-5 /usr/bin/python3 /home/ubuntu/deepseek_strategy.py >> /home/ubuntu/trading_log.txt 2>&1 && echo "Trading bot ran at $(date)" | mail -s "Trading Bot Notification" your_email@gmail.com
 ```
+
